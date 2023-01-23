@@ -1,0 +1,35 @@
+{
+  "name": "rewriting-react-exercise",
+  "version": "0.0.1",
+  "license": "mit",
+  "dependencies": {
+    "parcel": "^2.13.0",
+    "postcss": "^8.4.49",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.2.4"
+  },
+  "scripts": {
+    "start": "parcel ./public/index.html --no-cache"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "process": "^0.11.10"
+  }
+}
