@@ -81,3 +81,76 @@ Their is no magic:
 
 Currently, the projects builds, It obviously does nothing, but it builds.
 In the next step, we will code a first version of createElement and createRoot to see how react uses those functions to create HTML elements.
+
+## Step 2: Implement createElement & createRoot
+
+The function createElement is called this way in reference to another function: `document.createElement(tag: string): Element`. This standard function that takes a tag name and return a new html element node.
+
+You can then call `element.setAttribute(name, value)` to add attributes to the element.
+
+Let's wrote a first naive version:
+
+```js
+export const createElement = (elementType, options, ...children) => {
+    const el = document.createElement(elementType);
+
+    for (const [attrName, attrValue] of Object.entries(options)) {
+        el.setAttribute(attrName, attrValue);
+    }
+
+    return el;
+};
+```
+
+This version works if the elementType is a string like `div`. However, we know elementType is likely to be one of our react component function. In this case we will simply execute the function and return it's result. Indeed, your react component function always returns html tags to render, html tag that will call createElement and thus return html element.
+
+```js
+export const createElement = (elementType, options, ...children) => {
+    if (typeof elementType === 'function') {
+        return elementType(options);
+    }
+```
+
+The childrens need to be added to our element, they can either be a string or an HTML element or an array of them. Indeed, it will never be a React component because the React component would have already been processed by createElement which returns an HTML element.
+
+```js
+for (const child of children) {
+    // ex: <div>Children text</div>
+    if (typeof child === 'string') {
+        const tn = document.createTextNode(child);
+        el.appendChild(tn);
+    }
+    // ex: <div><span></span></div>
+    // ex: <div><MyElement></MyElement></div>
+    // The inside span/MyElement is processed first so we actually receive
+    // an html element
+    else if (child instanceof HTMLElement) {
+        el.appendChild(child);
+    }
+```
+
+Our `createElement` function already handle most cases, we can now write `createRoot` and see our application. For now, `createRoot` simply takes an HTML element and adds a child to it when render is called.
+
+```js
+export const createRoot = (rootEl) => ({
+    render: (childEl) => {
+        console.log(rootEl, childEl);
+        rootEl.appendChild(childEl);
+    }
+});
+```
+
+And TA-DA !
+
+![step2](doc/assets/step2.png)
+
+Ok, it's an humble start, let's handle the `className` special case before going into the next step to add style to our components.
+
+```js
+for (const [attrName, attrValue] of Object.entries(options)) {
+        if (attrName === 'className') {
+            el.setAttribute('class', attrValue);
+        }
+```
+
+![step2classname](doc/assets/step2classname.png)
