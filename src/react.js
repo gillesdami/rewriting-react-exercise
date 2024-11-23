@@ -1,12 +1,38 @@
-export const createRoot = (rootEl) => ({
-    render: (childEl) => {
-        rootEl.appendChild(childEl);
+let cursor = ''; // .App.Header.useState.useState
+let createFirstElement;
+let root;
+let isOutdated = false;
+const cache = {};
+
+const redrawLoop = () => {
+    if (isOutdated) {
+        isOutdated = false;
+        root.removeChild(root.firstChild);
+        root.appendChild(createFirstElement());
     }
-});
+
+    setTimeout(redrawLoop, 10);
+};
+
+export const createRoot = (rootEl) => {
+    root = rootEl;
+
+    return {
+        render: (childEl) => {
+            rootEl.appendChild(childEl);
+            redrawLoop();
+        }
+    }
+};
 
 export const createElement = (elementType, options, ...children) => {
+    if (!createFirstElement) {
+        createFirstElement = createElement.bind(elementType, options, ...children);
+    }
+
     if (typeof elementType === 'function') {
-        return elementType(options)
+        cursor += '.' + elementType.name;
+        return elementType(options);
     }
 
     const el = document.createElement(elementType);
@@ -29,13 +55,29 @@ export const createElement = (elementType, options, ...children) => {
         // ex: <div><MyElement></MyElement></div>
         else if (child instanceof HTMLElement) {
             el.appendChild(child);
+        } else {
+            console.log(child)
         }
     }
 
     return el;
 };
 
-export const useState = () => [undefined, () => {}];
+export const useState = (defaultValue) => {
+    cursor += '.useState';
+    cache[cursor] = cache[cursor] ?? defaultValue;
+
+    return [
+        cache[cursor],
+        (valueOrcb) => {
+            if (typeof valueOrcb === 'function') {
+                cache[cursor] = valueOrcb(cache[cursor]);
+            } else {
+                cache[cursor] = valueOrcb;
+            }
+        }
+    ];
+};
 
 export const useCallback = () => (() => {});
 
