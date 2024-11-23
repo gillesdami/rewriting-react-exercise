@@ -154,3 +154,115 @@ for (const [attrName, attrValue] of Object.entries(options)) {
 ```
 
 ![step2classname](doc/assets/step2classname.png)
+
+## Step 3: Implement useState
+
+Let me present you, useState:
+`useState<T>(defaultState?: T): [T, (value: T|(oldValue: T) => T) => void]`
+
+It takes a default state and immediately returns it.
+Then, the next time it is called, it will return the cached value.
+There are two ways to use the setter, by passing a value or a function, like so:
+
+```js
+const [isOk, setIsOk] = useState(false);
+setIsOk(false);
+setIsOk(oldIsOk => !oldIsOk);
+```
+
+We can write a first version like this:
+
+```js
+let cache;
+export const useState = (defaultValue) => {
+    cache = cache ?? defaultValue;
+
+    return [
+        // state
+        cache,
+        // setState
+        (valueOrcb) => {
+            // case: setState(oldState => newState)
+            if (typeof valueOrcb === 'function') {
+                cache = valueOrcb(cache);
+            // case: setState(newState)
+            } else {
+                cache = valueOrcb;
+            }
+        }
+    ];
+};
+```
+
+However, the big caveat is that we do not have a single cache, we cache data all over our React application, and we have no IDs that comes with the calls to use state.
+
+In this situation, there is only one solution, we must keep track of which React component is being rendered, and how many times useState has been called in this component to return the good value.
+
+To do so, we are going to create a cursor global variable and update it whenever we render a component or call a hook.
+
+```js
+let cursor = ''; // ex: .App.Header.useState.useState
+
+export const createElement = (elementType, options, ...children) => {
+    if (typeof elementType === 'function') {
+        // when a component is rendered we update the cursor to know wich component cache we want.
+        cursor += '.' + elementType.name;
+        // ...
+
+export const useState = (defaultValue) => {
+    cursor += '.useState';
+    cache[cursor] = cache[cursor] ?? defaultValue;
+
+    return [
+        cache[cursor],
+        ((cursor) => (valueOrcb) => {
+            if (typeof valueOrcb === 'function') {
+                cache[cursor] = valueOrcb(cache[cursor]);
+            } else {
+                cache[cursor] = valueOrcb;
+            }
+        })(cursor)
+    ];
+};
+```
+
+We replaced all our `cache` with `cache[cursor]` in useState so that we only return the appropriate state. But we also add to wrap our return value inside a closure. This is the `((cursor) => ...)(cursor)` part, if you don't know what closure is, bad luck we won't develop it in this course it would be way too long. But in practice, what it does is freeze the cursor value in time, so that when the user calls the setState function we get the cursor value of when he called useState.
+
+We can now associate a different state with every hook. But we still need to actually rerender the three after setState is called.
+To be able to redraw our app we must keep a reference to the `App` component and it's parameters and the root element in the dom.
+
+```js
+let createFirstElement;
+let root;
+
+export const createRoot = (rootEl) => {
+    root = rootEl;
+    // ...
+
+export const createElement = (elementType, options, ...children) => {
+    if (!createFirstElement) {
+        createFirstElement = () => createElement(elementType, options, ...children);
+    }
+    // ...
+```
+
+We will also add a flag to know if our application needs a redraw, and check it in a setTimeout loop.
+
+```js
+let isOutdated = false;
+
+const redrawLoop = () => {
+    if (isOutdated) {
+        isOutdated = false;
+        cursor = '';
+        root.removeChild(root.firstChild);
+        root.appendChild(createFirstElement());
+    }
+
+    setTimeout(redrawLoop, 10);
+};
+```
+
+And we are good for this step ! Our application render correctly, be we still need to implement useCallaback to interact with it.
+
+![step3](doc/assets/step3.png)
