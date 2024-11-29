@@ -9,19 +9,19 @@ const todoData = [
         _id: 1,
         title: 'Read django language book',
         status: false,
-        deadline: '2025-09-18T17:11:54',
+        deadline: '2025-01-01T21:00:00',
     },
     {
         _id: 2,
         title: 'Do My Home Work',
         status: true,
-        deadline: '2025-02-18T10:16:04',
+        deadline: '2024-09-18T20:00:00',
     },
     {
         _id: 3,
         title: 'create mini project react',
         status: false,
-        deadline: '2025-08-18T21:11:54',
+        deadline: '2025-05-18T11:11:00',
     },
 ];
 

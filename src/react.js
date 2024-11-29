@@ -3,6 +3,7 @@ let createFirstElement;
 let root;
 let isOutdated = false;
 const cache = {};
+const depCache = {};
 
 const redrawLoop = () => {
     if (isOutdated) {
@@ -42,8 +43,19 @@ export const createElement = (elementType, options, ...children) => {
         if (attrName === 'className') {
             el.setAttribute('class', attrValue);
         }
-
-        el.setAttribute(attrName, attrValue);
+        else if (attrName.startsWith('on')) {
+            const evt = attrName.slice(2).toLocaleLowerCase();
+            el.addEventListener(evt, attrValue);
+        }
+        else if (attrName == 'defaultChecked') {
+            el.checked = options['checked'] ?? attrValue;
+        }
+        else if (attrName == 'defaultValue') {
+            el.value = options['value'] ?? attrValue;
+        }
+        else {
+            el.setAttribute(attrName, attrValue);
+        }
     }
 
     for (const child of children.flat()) {
@@ -56,8 +68,6 @@ export const createElement = (elementType, options, ...children) => {
         // ex: <div><MyElement></MyElement></div>
         else if (child instanceof HTMLElement) {
             el.appendChild(child);
-        } else {
-            console.log(child)
         }
     }
 
@@ -76,11 +86,23 @@ export const useState = (defaultValue) => {
             } else {
                 cache[cursor] = valueOrcb;
             }
+
+            isOutdated = true;
         })(cursor)
     ];
 };
 
-export const useCallback = () => (() => {});
+export const useCallback = (cb, deps) => {
+    cursor += '.useCallback';
+
+    if (depCache[cursor]?.length !== deps.length
+        || deps.some((dep, i) => dep !== depCache[cursor][i])) {
+        cache[cursor] = cb;
+        depCache[cursor] = deps;
+    }
+
+    return cache[cursor];
+};
 
 export default {
     createRoot,

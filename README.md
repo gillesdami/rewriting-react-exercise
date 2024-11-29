@@ -261,8 +261,90 @@ const redrawLoop = () => {
 
     setTimeout(redrawLoop, 10);
 };
+
+// ...
+export const useState = (defaultValue) => {
+    // ...
+    return [
+        cache[cursor],
+        (valueOrcb) => {
+            // ...
+            isOutdated = true;
 ```
 
 And we are good for this step ! Our application render correctly, be we still need to implement useCallaback to interact with it.
 
 ![step3](doc/assets/step3.png)
+
+## Step 4: Implement useCallback
+
+Once you get the logic behind useState, you should realize that useCallback is pretty much use effect, but instead of changing the cache when a callback is called, you change the dependencies change. But that of course implies to cache the dependencies we receive during the previous render.
+
+To do so, let's create a dependency cache.
+
+```js
+const depCache = {};
+```
+
+And a first naive version of useCallback.
+
+```js
+export const useCallback = (cb, deps) => {
+    cursor += '.useCallback';
+
+    if (todoDepChanged()) {
+        cache[cursor] = cb;
+        depCache[cursor] = deps;
+    }
+
+    return cache[cursor];
+};
+```
+
+Deps is an array of anything, to compare the new and old deps, I propose we check if they have the same length and contains elements that are strictly equal.
+
+```js
+export const useCallback = (cb, deps) => {
+    cursor += '.useCallback';
+
+    if (depCache[cursor]?.length !== deps.length
+        || deps.some((dep, i) => dep !== depCache[cursor][i])) {
+        cache[cursor] = cb;
+        depCache[cursor] = deps;
+    }
+
+    return cache[cursor];
+};
+```
+
+And just like this, we would be good for this course if... we did not forget to implement properly the `onClick` and other onX attributes. Indeed, `onClick` is not a valid HTML attribute, `onclick` is, but only takes a string to be interpreted. The correct thing to do is to call addEventListener to register our callbacks, let's change one last time `createElement`.
+
+```js
+export const createElement = (elementType, options, ...children) => {
+    // ...
+    for (const [attrName, attrValue] of Object.entries(options)) {
+            // ...
+            if (attrName.startsWith('on')) {
+                const evt = attrName.slice(2).toLocaleLowerCase();
+                el.addEventListener(evt, attrValue);
+            }
+```
+
+`defaultChecked` and `defaultValue` does not exist either in html.
+
+```js
+export const createElement = (elementType, options, ...children) => {
+    // ...
+    for (const [attrName, attrValue] of Object.entries(options)) {
+            // ...
+            if (attrName == 'defaultChecked') {
+                el.checked = options['checked'] ?? attrValue;
+            } else if (attrName == 'defaultValue') {
+                el.value = options['value'] ?? attrValue;
+            }
+```
+
+And we are good !
+Congratulation, we rebuilt all react features required to make this TodoApp work in 100 lines of code !
+There is obviously so much more to react, other great APIs, endless optimizations...
+But I hope this course help you understand a bit better what you and React were doing in your components.
